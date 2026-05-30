@@ -1,0 +1,80 @@
+import React, { useState, useEffect } from 'react';
+import { db } from './firebase'; 
+import { ref, onValue, push, remove } from 'firebase/database';
+
+const PAYERS = ['ΓΙΩΡΓΟΣ', 'ΜΠΑΜΠΗΣ', 'ΚΩΣΤΑΣ', 'ΔΗΜΗΤΡΗΣ', 'ΜΑΡΙΛΗ', 'ΛΙΤΣΑ', 'ΔΗΜΗΤΡΗΣ', 'ΒΑΣΙΛΙΚΗ'];
+
+export default function App() {
+  const [expenses, setExpenses] = useState([]);
+  const [desc, setDesc] = useState('');
+  const [amount, setAmount] = useState('');
+  const [user, setUser] = useState(PAYERS[0]);
+
+  useEffect(() => {
+    const expRef = ref(db, 'expenses');
+    onValue(expRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const list = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+        setExpenses(list);
+      } else {
+        setExpenses([]);
+      }
+    });
+  }, []);
+
+  const addExpense = () => {
+    if (!desc || !amount) return;
+    push(ref(db, 'expenses'), { 
+      desc, 
+      amount: parseFloat(amount), 
+      payer: user, 
+      date: new Date().toLocaleDateString() 
+    });
+    setDesc('');
+    setAmount('');
+  };
+
+  const deleteExpense = (id) => {
+    remove(ref(db, `expenses/${id}`));
+  };
+
+  const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+  return (
+    <div style={{ fontFamily: 'sans-serif', padding: '20px', maxWidth: '500px', margin: 'auto' }}>
+      <h1>💶 Έξοδα Παρέας</h1>
+      
+      {/* Σύνολα */}
+      <div style={{ background: '#dcfce7', padding: '15px', borderRadius: '10px', marginBottom: '20px' }}>
+        <h3>Σύνολο Παρέας: {totalAmount.toFixed(2)}€</h3>
+        <div style={{ fontSize: '0.9em' }}>
+          {PAYERS.map(p => {
+            const total = expenses.filter(e => e.payer === p).reduce((sum, e) => sum + e.amount, 0);
+            return total > 0 ? <p key={p}><b>{p}:</b> {total.toFixed(2)}€</p> : null;
+          })}
+        </div>
+      </div>
+
+      {/* Φόρμα */}
+      <div style={{ background: '#f0f0f0', padding: '15px', borderRadius: '10px' }}>
+        <select onChange={(e) => setUser(e.target.value)} value={user} style={{ width: '100%', padding: '5px' }}>
+          {PAYERS.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <input placeholder="Αιτιολογία" value={desc} onChange={e => setDesc(e.target.value)} style={{ display: 'block', width: '100%', margin: '10px 0', padding: '8px' }} />
+        <input type="number" placeholder="Ποσό (€)" value={amount} onChange={e => setAmount(e.target.value)} style={{ display: 'block', width: '100%', marginBottom: '10px', padding: '8px' }} />
+        <button onClick={addExpense} style={{ width: '100%', padding: '10px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Προσθήκη Εξόδου</button>
+      </div>
+
+      {/* Λίστα */}
+      <div style={{ marginTop: '20px' }}>
+        {expenses.map((exp) => (
+          <div key={exp.id} style={{ borderBottom: '1px solid #ddd', padding: '10px', display: 'flex', justifyContent: 'space-between' }}>
+            <span>{exp.payer}: {exp.desc} - <b>{exp.amount}€</b></span>
+            <button onClick={() => deleteExpense(exp.id)} style={{ color: 'red', border: 'none', background: 'none', cursor: 'pointer' }}>X</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
