@@ -1,73 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { db } from './firebase'; 
-import { ref, onValue, push, remove } from 'firebase/database';
-
-const PAYERS = ['ΓΙΩΡΓΟΣ', 'ΜΠΑΜΠΗΣ', 'ΚΩΣΤΑΣ', 'ΔΗΜΗΤΡΗΣ', 'ΦΩΦΗ', 'ΜΑΡΙΛΗ', 'ΛΙΤΣΑ', 'ΒΑΣΙΛΙΚΗ'];
-
-export default function App() {
-  const [expenses, setExpenses] = useState([]);
-  const [desc, setDesc] = useState('');
-  const [amount, setAmount] = useState('');
-  const [user, setUser] = useState(PAYERS[0]);
-
-  useEffect(() => {
-    onValue(ref(db, 'expenses'), (snapshot) => {
-      const data = snapshot.val();
-      setExpenses(data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : []);
-    });
-  }, []);
-
-  const addExpense = () => {
-    if (!desc || !amount) return;
-    push(ref(db, 'expenses'), { 
-      desc, amount: parseFloat(amount), payer: user, date: new Date().toLocaleDateString() 
-    });
-    setDesc(''); setAmount('');
-  };
-
-  const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const fairShare = totalAmount / PAYERS.length;
-
-  return (
-    <div style={{ fontFamily: 'system-ui', padding: '20px', maxWidth: '500px', margin: 'auto' }}>
-      <h1>💶 Έξοδα Χίου 2026</h1>
-      
-      {/* Πίνακας Εκκαθάρισης */}
-      <div style={{ background: '#1e293b', color: 'white', padding: '15px', borderRadius: '12px', marginBottom: '20px' }}>
-        <h3 style={{ margin: '0 0 10px 0' }}>📊 Ποιος χρωστάει:</h3>
-        {PAYERS.map(p => {
-          const paid = expenses.filter(e => e.payer === p).reduce((sum, e) => sum + e.amount, 0);
-          const balance = paid - fairShare;
-          return (
-            <div key={p} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-              <span>{p}</span>
-              <span style={{ color: balance < 0 ? '#f87171' : '#4ade80', fontWeight: 'bold' }}>
-                {balance > 0 ? '+' : ''}{balance.toFixed(2)}€
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Φόρμα */}
-      <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-        <select onChange={(e) => setUser(e.target.value)} value={user} style={{ width: '100%', padding: '8px', marginBottom: '10px' }}>
-          {PAYERS.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
-        <input placeholder="Αιτιολογία" value={desc} onChange={e => setDesc(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
-        <input type="number" placeholder="Ποσό (€)" value={amount} onChange={e => setAmount(e.target.value)} style={{ width: '100%', padding: '8px', margin: '10px 0', boxSizing: 'border-box' }} />
-        <button onClick={addExpense} style={{ width: '100%', padding: '10px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Προσθήκη</button>
-      </div>
-
-      {/* Λίστα */}
-      <div style={{ marginTop: '20px' }}>
-        {expenses.slice().reverse().map((exp) => (
-          <div key={exp.id} style={{ borderBottom: '1px solid #e2e8f0', padding: '10px 0', display: 'flex', justifyContent: 'space-between' }}>
-            <span><b>{exp.payer}</b>: {exp.desc} ({exp.amount}€)</span>
-            <button onClick={() => remove(ref(db, `expenses/${exp.id}`))} style={{ color: 'red', border: 'none', background: 'none' }}>✕</button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+{
+  "name": "chios-vacation-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "firebase": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.3.0"
+  }
 }
